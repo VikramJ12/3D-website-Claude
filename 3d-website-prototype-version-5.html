@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Object Detection Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 20px;
+            position: relative;
+        }
+
+        .hero {
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 6rem);
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .hero p {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: #b8c5d6;
+            max-width: 700px;
+            margin: 0 auto 40px;
+            animation: fadeInUp 1s ease-out 0.3s backwards;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 18px 45px;
+            background: #ffffff;
+            color: #000;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 700;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 1s ease-out 0.6s backwards;
+            pointer-events: all;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(255, 255, 255, 0.4);
+        }
+
+        .detection-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 320px;
+            z-index: 10;
+            animation: slideInRight 0.8s ease-out;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .detection-info h3 {
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+
+        .detection-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            color: #8b95b8;
+            font-size: 0.95rem;
+        }
+
+        .detection-stat span {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .object-list {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .object-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .object-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .object-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .object-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            border-left: 3px solid #4ade80;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .object-item .name {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .object-item .confidence {
+            color: #4ade80;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            margin-right: 12px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1; 
+                box-shadow: 0 0 15px #4ade80;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.7; 
+                box-shadow: 0 0 25px #4ade80;
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .feature-section {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            width: 100%;
+            pointer-events: all;
+        }
+
+        .feature-card {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 40px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+
+        .feature-card p {
+            color: #b8c5d6;
+            line-height: 1.7;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            text-align: center;
+            color: #fff;
+            font-size: 1.2rem;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <div>Loading 3D Environment...</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div class="detection-info">
+        <h3>AI Detection System</h3>
+        <div class="detection-stat">
+            <span>Active Objects:</span>
+            <span id="detected-count">0</span>
+        </div>
+        <div class="detection-stat">
+            <span>Status:</span>
+            <span id="processing-status">Initializing</span>
+        </div>
+        <div class="object-list" id="object-list">
+            <!-- Detected objects will appear here -->
+        </div>
+        <div class="status-indicator">
+            <div class="status-dot"></div>
+            <span style="color: #4ade80; font-size: 0.9rem; font-weight: 600;">System Online</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <section class="hero">
+            <h1>Synthetic Object Recognition<br>Dataset for Industries</h1>
+            <p>AI-powered computer vision for manufacturing. Real-time object detection and classification on industrial production lines.</p>
+            <a href="#features" class="cta-button">Explore Dataset</a>
+        </section>
+
+        <section class="feature-section" id="features">
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🏭 Industrial Grade</h3>
+                    <p>Photorealistic synthetic dataset with 120+ object classes optimized for manufacturing environments and quality control systems.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>⚡ Real-Time Detection</h3>
+                    <p>High-speed YOLO-based object detection running at 60 FPS with automatic bounding box generation and classification.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎯 Precision Training</h3>
+                    <p>Generated using NVIDIA Omniverse with physically accurate materials, lighting, and automatic annotation for ML pipelines.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Scene Setup with better quality
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1d2e);
+        scene.fog = new THREE.FogExp2(0x1a1d2e, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true,
+            powerPreference: "high-performance"
+        });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Advanced Lighting Setup
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        // Main directional light (sunlight through warehouse windows)
+        const mainLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+        mainLight.position.set(15, 20, 10);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 4096;
+        mainLight.shadow.mapSize.height = 4096;
+        mainLight.shadow.camera.left = -20;
+        mainLight.shadow.camera.right = 20;
+        mainLight.shadow.camera.top = 20;
+        mainLight.shadow.camera.bottom = -20;
+        mainLight.shadow.camera.near = 0.1;
+        mainLight.shadow.camera.far = 100;
+        mainLight.shadow.bias = -0.0001;
+        scene.add(mainLight);
+
+        // Fill light
+        const fillLight = new THREE.DirectionalLight(0x4a90e2, 0.4);
+        fillLight.position.set(-10, 10, -5);
+        scene.add(fillLight);
+
+        // Industrial ceiling lights
+        const ceilingLightPositions = [
+            [-10, 12, -5], [0, 12, -5], [10, 12, -5],
+            [-10, 12, 5], [0, 12, 5], [10, 12, 5]
+        ];
+
+        ceilingLightPositions.forEach(pos => {
+            const light = new THREE.PointLight(0xffa500, 0.8, 25, 2);
+            light.position.set(...pos);
+            light.castShadow = true;
+            scene.add(light);
+
+            // Light fixture visual
+            const fixtureGeo = new THREE.CylinderGeometry(0.3, 0.4, 0.2, 8);
+            const fixtureMat = new THREE.MeshStandardMaterial({
+                color: 0x2d2d2d,
+                metalness: 0.9,
+                roughness: 0.1,
+                emissive: 0xffa500,
+                emissiveIntensity: 0.3
+            });
+            const fixture = new THREE.Mesh(fixtureGeo, fixtureMat);
+            fixture.position.set(...pos);
+            scene.add(fixture);
+        });
+
+        // Create detailed industrial floor
+        const floorGeometry = new THREE.PlaneGeometry(60, 60, 100, 100);
+        
+        // Add some noise to floor vertices for realism
+        const floorPositions = floorGeometry.attributes.position;
+        for (let i = 0; i < floorPositions.count; i++) {
+            const z = floorPositions.getZ(i);
+            floorPositions.setZ(i, z + (Math.random() - 0.5) * 0.02);
+        }
+        floorGeometry.computeVertexNormals();
+
+        const floorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x3d4451,
+            roughness: 0.85,
+            metalness: 0.15,
+            envMapIntensity: 0.5
+        });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // Create industrial warehouse structure
+        const wallMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x2a3142,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+
+        // Back wall with detail
+        const backWallGeo = new THREE.BoxGeometry(40, 15, 1);
+        const backWall = new THREE.Mesh(backWallGeo, wallMaterial);
+        backWall.position.set(0, 5.5, -15);
+        backWall.receiveShadow = true;
+        backWall.castShadow = true;
+        scene.add(backWall);
+
+        // Side walls
+        const sideWallGeo = new THREE.BoxGeometry(1, 15, 35);
+        const leftWall = new THREE.Mesh(sideWallGeo, wallMaterial);
+        leftWall.position.set(-20, 5.5, 2.5);
+        leftWall.receiveShadow = true;
+        scene.add(leftWall);
+
+        const rightWall = new THREE.Mesh(sideWallGeo, wallMaterial);
+        rightWall.position.set(20, 5.5, 2.5);
+        rightWall.receiveShadow = true;
+        scene.add(rightWall);
+
+        // Industrial storage racks with more detail
+        const rackMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4f5d75,
+            metalness: 0.7,
+            roughness: 0.3
+        });
+
+        // Create detailed storage rack system
+        for(let row = 0; row < 2; row++) {
+            for(let i = 0; i < 6; i++) {
+                const rackGroup = new THREE.Group();
+                
+                // Vertical posts
+                const postGeo = new THREE.BoxGeometry(0.15, 8, 0.15);
+                for(let p = 0; p < 4; p++) {
+                    const post = new THREE.Mesh(postGeo, rackMaterial);
+                    const x = (p % 2) * 1.8 - 0.9;
+                    const z = Math.floor(p / 2) * 1.2 - 0.6;
+                    post.position.set(x, 2, z);
+                    post.castShadow = true;
+                    rackGroup.add(post);
+                }
+                
+                // Horizontal shelves
+                const shelfGeo = new THREE.BoxGeometry(2, 0.1, 1.4);
+                for(let s = 0; s < 4; s++) {
+                    const shelf = new THREE.Mesh(shelfGeo, rackMaterial);
+                    shelf.position.y = s * 2 + 0.5;
+                    shelf.castShadow = true;
+                    shelf.receiveShadow = true;
+                    rackGroup.add(shelf);
+                }
+
+                rackGroup.position.set(-16 + i * 6, 0, -13 + row * 4);
+                scene.add(rackGroup);
+            }
+        }
+
+        // Add some boxes on shelves for realism
+        const boxMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8b6f47,
+            roughness: 0.9,
+            metalness: 0.0
+        });
+
+        for(let i = 0; i < 20; i++) {
+            const boxSize = 0.3 + Math.random() * 0.4;
+            const box = new THREE.Mesh(
+                new THREE.BoxGeometry(boxSize, boxSize, boxSize),
+                boxMaterial
+            );
+            box.position.set(
+                -18 + Math.random() * 32,
+                1 + Math.random() * 6,
+                -14 + Math.random() * 6
+            );
+            box.rotation.y = Math.random() * Math.PI;
+            box.castShadow = true;
+            box.receiveShadow = true;
+            scene.add(box);
+        }
+
+        // Create high-quality conveyor belt
+        const beltWidth = 2.5;
+        const beltLength = 25;
+        
+        const conveyorGroup = new THREE.Group();
+
+        // Belt surface with better material
+        const beltGeometry = new THREE.BoxGeometry(beltWidth, 0.12, beltLength);
+        const beltMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x1a1a1a,
+            metalness: 0.3,
+            roughness: 0.7,
+            envMapIntensity: 0.5
+        });
+        const belt = new THREE.Mesh(beltGeometry, beltMaterial);
+        belt.receiveShadow = true;
+        belt.castShadow = true;
+        conveyorGroup.add(belt);
+
+        // Detailed rollers
+        const rollerGeometry = new THREE.CylinderGeometry(0.12, 0.12, beltWidth + 0.4, 24);
+        const rollerMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x0d0d0d,
+            metalness: 0.9,
+            roughness: 0.2
+        });
+
+        const numRollers = 12;
+        for(let i = 0; i < numRollers; i++) {
+            const roller = new THREE.Mesh(rollerGeometry, rollerMaterial);
+            roller.rotation.z = Math.PI / 2;
+            const z = -beltLength/2 + (beltLength / (numRollers - 1)) * i;
+            roller.position.set(0, -0.06, z);
+            roller.castShadow = true;
+            roller.userData.isRoller = true;
+            conveyorGroup.add(roller);
+        }
+
+        // Industrial side rails with detail
+        const railGeometry = new THREE.BoxGeometry(0.12, 0.35, beltLength);
+        const railMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x505662,
+            metalness: 0.8,
+            roughness: 0.25
+        });
+
+        const leftRail = new THREE.Mesh(railGeometry, railMaterial);
+        leftRail.position.set(-beltWidth/2 - 0.06, 0.23, 0);
+        leftRail.castShadow = true;
+        conveyorGroup.add(leftRail);
+
+        const rightRail = new THREE.Mesh(railGeometry, railMaterial);
+        rightRail.position.set(beltWidth/2 + 0.06, 0.23, 0);
+        rightRail.castShadow = true;
+        conveyorGroup.add(rightRail);
+
+        // Support structure
+        const supportMaterial = new THREE.MeshStandardMaterial({
+            color: 0x3d4451,
+            metalness: 0.7,
+            roughness: 0.3
+        });
+
+        // Legs
+        const legPositions = [
+            [-beltWidth/2 - 0.4, -1, -beltLength/2 + 3],
+            [beltWidth/2 + 0.4, -1, -beltLength/2 + 3],
+            [-beltWidth/2 - 0.4, -1, 0],
+            [beltWidth/2 + 0.4, -1, 0],
+            [-beltWidth/2 - 0.4, -1, beltLength/2 - 3],
+            [beltWidth/2 + 0.4, -1, beltLength/2 - 3]
+        ];
+
+        legPositions.forEach(pos => {
+            const legGeo = new THREE.CylinderGeometry(0.1, 0.12, 2, 12);
+            const leg = new THREE.Mesh(legGeo, supportMaterial);
+            leg.position.set(...pos);
+            leg.castShadow = true;
+            conveyorGroup.add(leg);
+
+            // Foot plate
+            const footGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.08, 12);
+            const foot = new THREE.Mesh(footGeo, supportMaterial);
+            foot.position.set(pos[0], -2, pos[2]);
+            conveyorGroup.add(foot);
+        });
+
+        conveyorGroup.position.y = 0;
+        scene.add(conveyorGroup);
+
+        // High-quality industrial objects
+        const objectTypes = [
+            { 
+                name: 'Cardboard Box', 
+                create: () => {
+                    const size = 0.5 + Math.random() * 0.35;
+                    const geo = new THREE.BoxGeometry(size, size * 0.9, size);
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: 0xc8a882,
+                        roughness: 0.95,
+                        metalness: 0.0
+                    });
+                    return new THREE.Mesh(geo, mat);
+                }
+            },
+            { 
+                name: 'Metal Container', 
+                create: () => {
+                    const size = 0.45 + Math.random() * 0.25;
+                    const geo = new THREE.BoxGeometry(size, size * 1.3, size * 0.8);
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: 0x6b7c8c,
+                        roughness: 0.2,
+                        metalness: 0.95
+                    });
+                    return new THREE.Mesh(geo, mat);
+                }
+            },
+            { 
+                name: 'Industrial Drum', 
+                create: () => {
+                    const size = 0.35 + Math.random() * 0.2;
+                    const geo = new THREE.CylinderGeometry(size, size * 0.95, size * 1.8, 32);
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: 0x2d5da1,
+                        roughness: 0.3,
+                        metalness: 0.7
+                    });
+                    return new THREE.Mesh(geo, mat);
+                }
+            },
+            { 
+                name: 'Wooden Pallet', 
+                create: () => {
+                    const group = new THREE.Group();
+                    const woodMat = new THREE.MeshStandardMaterial({ 
+                        color: 0x8b6f47,
+                        roughness: 0.95,
+                        metalness: 0.0
+                    });
+                    
+                    // Pallet base
+                    for(let i = 0; i < 5; i++) {
+                        const plank = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.6, 0.05, 0.08),
+                            woodMat
+                        );
+                        plank.position.z = -0.2 + i * 0.1;
+                        group.add(plank);
+                    }
+                    
+                    // Support blocks
+                    for(let i = 0; i < 3; i++) {
+                        const block = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.08, 0.12, 0.5),
+                            woodMat
+                        );
+                        block.position.set(-0.25 + i * 0.25, -0.08, 0);
+                        group.add(block);
+                    }
+                    
+                    return group;
+                }
+            },
+            { 
+                name: 'Metal Component', 
+                create: () => {
+                    const size = 0.3 + Math.random() * 0.25;
+                    const geo = new THREE.TorusGeometry(size, size * 0.3, 16, 32);
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: 0x707070,
+                        roughness: 0.15,
+                        metalness: 0.95
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.rotation.x = Math.PI / 2;
+                    return mesh;
+                }
+            },
+            { 
+                name: 'Plastic Crate', 
+                create: () => {
+                    const size = 0.5 + Math.random() * 0.2;
+                    const geo = new THREE.BoxGeometry(size, size * 0.6, size);
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: 0x3a7d44,
+                        roughness: 0.6,
+                        metalness: 0.2
+                    });
+                    return new THREE.Mesh(geo, mat);
+                }
+            }
+        ];
+
+        const objects = [];
+        const boundingBoxes = [];
+        const detectedObjects = new Map();
+
+        function createObject() {
+            const type = objectTypes[Math.floor(Math.random() * objectTypes.length)];
+            const mesh = type.create();
+            
+            mesh.position.set(
+                (Math.random() - 0.5) * (beltWidth - 0.8),
+                0.3,
+                -beltLength/2 - 3
+            );
+            mesh.rotation.y = Math.random() * Math.PI * 2;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData.type = type.name;
+            mesh.userData.speed = 0.035 + Math.random() * 0.015;
+            mesh.userData.detected = false;
+            mesh.userData.id = Date.now() + Math.random();
+            
+            scene.add(mesh);
+            objects.push(mesh);
+            
+            // Enhanced bounding box
+            const box = new THREE.Box3().setFromObject(mesh);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            
+            const bboxGeo = new THREE.BoxGeometry(size.x * 1.1, size.y * 1.1, size.z * 1.1);
+            const edges = new THREE.EdgesGeometry(bboxGeo);
+            const lineMat = new THREE.LineBasicMaterial({ 
+                color: 0x00ff00,
+                linewidth: 2
+            });
+            const bbox = new THREE.LineSegments(edges, lineMat);
+            bbox.visible = false;
+            mesh.add(bbox);
+            boundingBoxes.push(bbox);
+        }
+
+        // Initialize objects
+        for(let i = 0; i < 7; i++) {
+            setTimeout(() => createObject(), i * 1800);
+        }
+
+        // Camera position - cinematic angle
+        camera.position.set(-3, 4, 12);
+        camera.lookAt(0, 0, 0);
+
+        // Belt texture animation
+        const beltLines = [];
+        const lineMat = new THREE.LineBasicMaterial({ 
+            color: 0x0d0d0d,
+            transparent: true,
+            opacity: 0.6
+        });
+
+        for(let i = 0; i < 40; i++) {
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array([
+                -beltWidth/2, 0, 0,
+                beltWidth/2, 0, 0
+            ]);
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const line = new THREE.Line(geo, lineMat);
+            line.userData.offset = i * 0.6;
+            beltLines.push(line);
+            line.position.y = 0.07;
+            conveyorGroup.add(line);
+        }
+
+        // Post-processing effects simulation with lighting
+        const rimLight = new THREE.DirectionalLight(0x4a90e2, 0.5);
+        rimLight.position.set(-15, 5, 15);
+        scene.add(rimLight);
+
+        let beltOffset = 0;
+
+        function updateDetectionUI() {
+            const objectList = document.getElementById('object-list');
+            objectList.innerHTML = '';
+            
+            const sortedObjects = Array.from(detectedObjects.entries())
+                .sort((a, b) => b[1].confidence - a[1].confidence);
+            
+            sortedObjects.forEach(([id, obj]) => {
+                const item = document.createElement('div');
+                item.className = 'object-item';
+                item.innerHTML = `
+                    <span class="name">${obj.type}</span>
+                    <span class="confidence">${obj.confidence}%</span>
+                `;
+                objectList.appendChild(item);
+            });
+
+            document.getElementById('detected-count').textContent = detectedObjects.size;
+            document.getElementById('processing-status').textContent = 
+                detectedObjects.size > 0 ? 'Detecting' : 'Monitoring';
+        }
+
+        // Hide loading screen
+        setTimeout(() => {
+            document.getElementById('loading').style.display = 'none';
+        }, 1000);
+
+        // Animation loop
+        let lastTime = Date.now();
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentTime = Date.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            // Animate belt texture
+            beltOffset += 0.035;
+            beltLines.forEach(line => {
+                const z = ((line.userData.offset + beltOffset) % beltLength) - beltLength/2;
+                line.position.z = z;
+            });
+
+            // Rotate rollers
+            conveyorGroup.children.forEach(child => {
+                if (child.userData.isRoller) {
+                    child.rotation.x += 0.08;
+                }
+            });
+
+            // Animate objects and detection
+            detectedObjects.clear();
+            
+            objects.forEach((obj, index) => {
+                obj.position.z += obj.userData.speed;
+                
+                // Subtle rotation for realism
+                if (obj.rotation) {
+                    obj.rotation.y += 0.005;
+                }
+
+                // Detection zone - center of conveyor
+                const inZone = obj.position.z > -4 && obj.position.z < 4;
+                
+                if (inZone) {
+                    if (boundingBoxes[index]) {
+                        boundingBoxes[index].visible = true;
+                    }
+                    
+                    const confidence = 92 + Math.floor(Math.random() * 7);
+                    detectedObjects.set(obj.userData.id, {
+                        type: obj.userData.type,
+                        confidence: confidence
+                    });
+
+                    // Highlight effect
+                    if (obj.material && obj.material.emissive) {
+                        obj.material.emissive.setHex(0x00ff00);
+                        obj.material.emissiveIntensity = 0.15;
+                    }
+                } else {
+                    if (boundingBoxes[index]) {
+                        boundingBoxes[index].visible = false;
+                    }
+                    
+                    if (obj.material && obj.material.emissive) {
+                        obj.material.emissive.setHex(0x000000);
+                        obj.material.emissiveIntensity = 0;
+                    }
+                }
+                
+                // Recycle objects
+                if (obj.position.z > beltLength/2 + 3) {
+                    scene.remove(obj);
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) obj.material.dispose();
+                    objects.splice(index, 1);
+                    boundingBoxes.splice(index, 1);
+                    createObject();
+                }
+            });
+
+            updateDetectionUI();
+
+            // Subtle camera movement
+            const time = currentTime * 0.0002;
+            camera.position.x = -3 + Math.sin(time) * 0.3;
+            camera.lookAt(0, 0, 0);
+
+            // Dynamic lighting
+            ceilingLightPositions.forEach((pos, i) => {
+                const light = scene.children.find(child => 
+                    child.isPointLight && 
+                    Math.abs(child.position.x - pos[0]) < 0.1
+                );
+                if (light) {
+                    light.intensity = 0.7 + Math.sin(time * 2 + i) * 0.15;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            renderer.dispose();
+            scene.traverse((object) => {
+                if (object.geometry) object.geometry.dispose();
+                if (object.material) {
+                    if (Array.isArray(object.material)) {
+                        object.material.forEach(material => material.dispose());
+                    } else {
+                        object.material.dispose();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
