@@ -16,6 +16,8 @@
   - Warehouse environment (floor, walls)
   - All materials and textures
 
+### For GLB file go to this link: https://drive.google.com/file/d/1G_FVVFHKa628e6JIM62-3e5yzM6X-UIt/view?usp=sharing 
+
 ### ✅ Complete Website Code
 - Fully animated conveyor belt system
 - Real-time object detection
